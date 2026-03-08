@@ -10,7 +10,7 @@ All symbolic work is delegated to SymPy.
 """
 
 import sympy as sp
-from sympy import Function, Symbol, simplify, cos, sin, symbols
+from sympy import Function, Symbol, simplify, cos, symbols
 
 
 # ---------------------------------------------------------------------------
@@ -211,7 +211,7 @@ def legendre_transform(L_func, q_funcs, t: Symbol = None):
     qdots = [q.diff(t) for q in qs]
 
     # Build L expression
-    if multi or len(q_funcs) > 1:
+    if multi:
         L_expr = L_func(t, qs, qdots)
     else:
         L_expr = L_func(t, qs[0], qdots[0])
