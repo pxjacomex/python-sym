@@ -10,18 +10,7 @@ All symbolic work is delegated to SymPy.
 """
 
 import sympy as sp
-from sympy import Function, Symbol, diff, simplify, cos, sin, symbols
-
-
-# ---------------------------------------------------------------------------
-# Helper: build the "local tuple" (t, q(t), dq/dt) used by scmutils
-# ---------------------------------------------------------------------------
-
-def _make_state(q_func: Function, t: Symbol):
-    """Return (t, q(t), dq/dt) — the local tuple of generalized state."""
-    q = q_func(t)
-    qdot = q.diff(t)
-    return t, q, qdot
+from sympy import Function, Symbol, simplify, cos
 
 
 # ---------------------------------------------------------------------------

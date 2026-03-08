@@ -6,16 +6,15 @@ de funciones que va desde polinomios triviales hasta composiciones
 profundamente anidadas.
 """
 
-import pytest
 import sympy as sp
 from sympy import (
     Symbol, Function, Rational,
     sin, cos, tan, exp, log, sqrt, atan2,
     asin, acos, atan, sinh, cosh, tanh,
-    pi, oo, simplify, diff, symbols,
+    simplify, diff, symbols,
 )
 
-x, y, z, a, b, c, t = symbols("x y z a b c t")
+x, y, t = symbols("x y t")
 
 
 # ===================================================================

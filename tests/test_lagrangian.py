@@ -9,11 +9,10 @@ Cubre:
   - Partícula en campo central
 """
 
-import pytest
 import sympy as sp
 from sympy import (
     Symbol, Function, Rational, symbols,
-    sin, cos, exp, sqrt, simplify,
+    sin, cos, simplify,
 )
 
 from python_sym.lagrangian import (
@@ -128,19 +127,15 @@ class TestDoublePendulum:
             q1, q2 = qs
             qd1, qd2 = qdots
 
-            x1 = l1 * sin(q1)
-            y1 = -l1 * cos(q1)
-            x2 = x1 + l2 * sin(q2)
-            y2 = y1 - l2 * cos(q2)
-
-            vx1 = x1.diff(t)
-            vy1 = y1.diff(t)
-            vx2 = x2.diff(t)
-            vy2 = y2.diff(t)
+            # Velocidades cartesianas expresadas con qdots
+            vx1 = l1 * cos(q1) * qd1
+            vy1 = l1 * sin(q1) * qd1
+            vx2 = vx1 + l2 * cos(q2) * qd2
+            vy2 = vy1 + l2 * sin(q2) * qd2
 
             T = Rational(1, 2) * m1 * (vx1**2 + vy1**2) + \
                 Rational(1, 2) * m2 * (vx2**2 + vy2**2)
-            V = m1 * g_sym * y1 + m2 * g_sym * y2
+            V = -m1 * g_sym * l1 * cos(q1) - m2 * g_sym * (l1 * cos(q1) + l2 * cos(q2))
             return T - V
 
         eqs = lagrange_equations_multi(L_double, [th1, th2], t)

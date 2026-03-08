@@ -3,11 +3,13 @@
 from python_sym.lagrangian import (
     LagrangianMechanics,
     lagrange_equations,
+    lagrange_equations_multi,
     L_pendulum,
 )
 
 __all__ = [
     "LagrangianMechanics",
     "lagrange_equations",
+    "lagrange_equations_multi",
     "L_pendulum",
 ]
