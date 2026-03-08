@@ -51,7 +51,8 @@ python-sym/
 ├── tests/
 │   ├── test_symbolic_diff.py  # Tests de diferenciación simbólica (10 niveles)
 │   └── test_lagrangian.py     # Tests de mecánica lagrangiana
-├── pendulum_demo.py         # Demo ejecutable del péndulo
+├── pendulum_demo.py         # Demo ejecutable del péndulo simple
+├── double_pendulum_demo.py  # Demo del péndulo doble (Lagrangiano + Hamiltoniano)
 ├── requirements.txt
 └── README.md
 ```
@@ -62,16 +63,43 @@ python-sym/
 pip install -r requirements.txt
 ```
 
-## Ejecutar la demo
+## Ejecutar las demos
+
+### Péndulo simple
 
 ```bash
 python pendulum_demo.py
 ```
 
+Muestra la ecuación de Euler-Lagrange **m l² θ̈ + m g l sin(θ) = 0** y verifica
+el resultado contra la forma esperada.
+
+### Péndulo doble (Lagrangiano → Hamiltoniano)
+
+```bash
+python double_pendulum_demo.py
+```
+
+Muestra, paso a paso:
+
+1. El Lagrangiano `L = T - V` con 5 parámetros simbólicos (m1, m2, l1, l2, g)
+2. Las 2 ecuaciones de Euler-Lagrange
+3. Los momentos conjugados p₁, p₂
+4. Las velocidades resueltas en términos de los momentos
+5. El Hamiltoniano `H(t, q, p)` obtenido por transformada de Legendre
+6. Verificación de que `H = T + V` (sistema natural)
+
 ## Ejecutar los tests
 
 ```bash
 pytest -v
+```
+
+Para ejecutar solo los tests del péndulo doble y la transformada de Legendre:
+
+```bash
+pytest -v tests/test_lagrangian.py::TestDoublePendulumFactory
+pytest -v tests/test_lagrangian.py::TestLegendreTransform
 ```
 
 ### Cobertura de tests de diferenciación simbólica
@@ -98,7 +126,9 @@ Los tests en `tests/test_symbolic_diff.py` cubren 10 niveles de complejidad:
 | Péndulo simple | m l² θ̈ + m g l sin(θ) = 0 |
 | Partícula libre | m ẍ = 0 |
 | Oscilador armónico | m ẍ + k x = 0 |
-| Péndulo doble | 2 ecuaciones E-L con derivadas segundas |
+| Péndulo doble (inline) | 2 ecuaciones E-L con derivadas segundas |
+| Péndulo doble (factory) | `L_double_pendulum` con 5 parámetros, expresión L, numérico, clase OOP |
+| Transformada de Legendre | H para péndulo simple, partícula libre, oscilador armónico, péndulo doble (H = T + V) |
 | Campo central | Ecuación radial con V'(r), conservación de momento angular |
 
 ## Correspondencia scmutils ↔ Python
@@ -116,11 +146,20 @@ Los tests en `tests/test_symbolic_diff.py` cubren 10 niveles de complejidad:
 ### `L_pendulum(m, l, g)`
 Retorna un Lagrangiano `L(t, θ, θ̇)` para un péndulo simple.
 
+### `L_double_pendulum(m1, m2, l1, l2, g)`
+Retorna un Lagrangiano `L(t, [θ₁,θ₂], [θ̇₁,θ̇₂])` para un péndulo doble
+con 5 parámetros simbólicos.
+
 ### `lagrange_equations(L_func, q_func, t=None)`
 Calcula la ecuación de Euler-Lagrange para una coordenada generalizada.
 
 ### `lagrange_equations_multi(L_func, q_funcs, t=None)`
 Calcula las ecuaciones de Euler-Lagrange para múltiples coordenadas.
+
+### `legendre_transform(L_func, q_funcs, t=None)`
+Transforma un Lagrangiano en Hamiltoniano vía la transformada de Legendre.
+Retorna un diccionario con el Hamiltoniano `H`, los momentos conjugados y
+las velocidades resueltas en términos de los momentos.
 
 ### `LagrangianMechanics(L_func, q_funcs, t=None)`
 Clase auxiliar que agrupa un Lagrangiano con sus coordenadas y provee
