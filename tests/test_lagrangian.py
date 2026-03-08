@@ -18,7 +18,9 @@ from sympy import (
 from python_sym.lagrangian import (
     lagrange_equations,
     lagrange_equations_multi,
+    legendre_transform,
     L_pendulum,
+    L_double_pendulum,
     LagrangianMechanics,
 )
 
@@ -207,3 +209,151 @@ class TestCentralForce:
             + r_t**2 * phi_t.diff(t, 2)
         )
         assert simplify(phi_eq - expected) == 0
+
+
+# ===================================================================
+#  Pendulo doble con L_double_pendulum (5 parametros)
+# ===================================================================
+
+class TestDoublePendulumFactory:
+
+    def setup_method(self):
+        self.m1, self.m2, self.l1, self.l2, self.g = symbols(
+            "m1 m2 l1 l2 g", positive=True
+        )
+        self.th1 = Function("theta1")
+        self.th2 = Function("theta2")
+        self.L = L_double_pendulum(self.m1, self.m2, self.l1, self.l2, self.g)
+
+    def test_produces_two_equations(self):
+        eqs = lagrange_equations_multi(self.L, [self.th1, self.th2], t)
+        assert len(eqs) == 2
+        for eq in eqs:
+            assert eq.has(sp.Derivative)
+
+    def test_lagrangian_expression(self):
+        """Verify L = T - V with known formula."""
+        q1 = self.th1(t)
+        q2 = self.th2(t)
+        qd1, qd2 = q1.diff(t), q2.diff(t)
+        L_expr = self.L(t, [q1, q2], [qd1, qd2])
+
+        T_expected = (
+            Rational(1, 2) * (self.m1 + self.m2) * self.l1**2 * qd1**2
+            + Rational(1, 2) * self.m2 * self.l2**2 * qd2**2
+            + self.m2 * self.l1 * self.l2 * qd1 * qd2 * cos(q1 - q2)
+        )
+        V_expected = (
+            -(self.m1 + self.m2) * self.g * self.l1 * cos(q1)
+            - self.m2 * self.g * self.l2 * cos(q2)
+        )
+        assert simplify(L_expr - (T_expected - V_expected)) == 0
+
+    def test_numeric_parameters(self):
+        """With concrete numbers: m1=1, m2=1, l1=1, l2=1, g=10."""
+        L_num = L_double_pendulum(1, 1, 1, 1, 10)
+        th1 = Function("theta1")
+        th2 = Function("theta2")
+        eqs = lagrange_equations_multi(L_num, [th1, th2], t)
+        assert len(eqs) == 2
+        for eq in eqs:
+            assert eq.has(sp.Derivative)
+
+    def test_via_class(self):
+        mech = LagrangianMechanics(self.L, [self.th1, self.th2], t)
+        eqs = mech.euler_lagrange()
+        assert len(eqs) == 2
+
+
+# ===================================================================
+#  Transformada de Legendre (Lagrangiano -> Hamiltoniano)
+# ===================================================================
+
+class TestLegendreTransform:
+
+    def test_simple_pendulum_hamiltonian(self):
+        """H for simple pendulum: H = p^2/(2ml^2) + mgl(1 - cos(theta))."""
+        m, l, g_sym = symbols("m l g", positive=True)
+        theta = Function("theta")
+        L = L_pendulum(m, l, g_sym)
+
+        result = legendre_transform(L, theta, t)
+        H = result["H"]
+
+        # The Hamiltonian should be T + V (natural system)
+        theta_t = theta(t)
+        p = sp.Symbol("p_theta")
+        # p = m l^2 thetadot  =>  thetadot = p / (m l^2)
+        H_expected = p**2 / (2 * m * l**2) + m * g_sym * l * (1 - cos(theta_t))
+        assert simplify(H - H_expected) == 0
+
+    def test_free_particle_hamiltonian(self):
+        """H = p^2 / (2m) for a free particle."""
+        m_sym = symbols("m", positive=True)
+        x_func = Function("x")
+
+        def L_free(t_val, x_val, xdot):
+            return Rational(1, 2) * m_sym * xdot**2
+
+        result = legendre_transform(L_free, x_func, t)
+        H = result["H"]
+
+        p = sp.Symbol("p_x")
+        H_expected = p**2 / (2 * m_sym)
+        assert simplify(H - H_expected) == 0
+
+    def test_harmonic_oscillator_hamiltonian(self):
+        """H = p^2/(2m) + kx^2/2."""
+        m_sym, k = symbols("m k", positive=True)
+        x_func = Function("x")
+
+        def L_ho(t_val, x_val, xdot):
+            return Rational(1, 2) * m_sym * xdot**2 - Rational(1, 2) * k * x_val**2
+
+        result = legendre_transform(L_ho, x_func, t)
+        H = result["H"]
+
+        p = sp.Symbol("p_x")
+        x_t = x_func(t)
+        H_expected = p**2 / (2 * m_sym) + Rational(1, 2) * k * x_t**2
+        assert simplify(H - H_expected) == 0
+
+    def test_double_pendulum_hamiltonian(self):
+        """H for double pendulum should exist and equal T + V."""
+        m1, m2, l1, l2, g_sym = symbols("m1 m2 l1 l2 g", positive=True)
+        th1 = Function("theta1")
+        th2 = Function("theta2")
+        L = L_double_pendulum(m1, m2, l1, l2, g_sym)
+
+        result = legendre_transform(L, [th1, th2], t)
+        H = result["H"]
+
+        # Must contain both momenta
+        p1 = sp.Symbol("p_theta1")
+        p2 = sp.Symbol("p_theta2")
+        assert H.has(p1) and H.has(p2)
+
+        # Verify H = T + V by substituting qdots back
+        q1, q2 = th1(t), th2(t)
+        qd1, qd2 = q1.diff(t), q2.diff(t)
+
+        T = (Rational(1, 2) * (m1 + m2) * l1**2 * qd1**2
+             + Rational(1, 2) * m2 * l2**2 * qd2**2
+             + m2 * l1 * l2 * qd1 * qd2 * cos(q1 - q2))
+        V = -(m1 + m2) * g_sym * l1 * cos(q1) - m2 * g_sym * l2 * cos(q2)
+        E = T + V
+        E_in_p = E.subs(result["qdots"])
+        assert simplify(H - E_in_p) == 0
+
+    def test_momenta_dict(self):
+        """Verify the momenta dict is correct."""
+        m, l, g_sym = symbols("m l g", positive=True)
+        theta = Function("theta")
+        L = L_pendulum(m, l, g_sym)
+
+        result = legendre_transform(L, theta, t)
+        p_theta = sp.Symbol("p_theta")
+        # p_theta = m * l^2 * thetadot
+        theta_t = theta(t)
+        expected_momentum = m * l**2 * theta_t.diff(t)
+        assert simplify(result["momenta"][p_theta] - expected_momentum) == 0
